@@ -10,25 +10,40 @@ const Plot = plotComponentFactory(Plotly);
 class App extends Component {
   constructor(props) {
     super(props);
-    this.state = { messages: [] }; // <- set up react state
+    this.state = { messages: [], graphType: "temp" };
   }
 
-  componentWillMount(){
-    let tempRef = fire.database().ref('temp').orderByKey().limitToLast(100);
-    tempRef.once('value')
-	  .then(function(snapshot) {
+  reloadData(prevStore) {
+    if (prevStore) {
+      fire.database().ref(prevStore).off();
+    }
 
-	  })
+    let ref = fire.database().ref(this.state.graphType)
+      .orderByChild('timestamp').limitToLast(5000);
 
-    tempRef.on('child_added', snapshot => {
-      /* Update React state when message is added at Firebase Database */
-      let message = {
-        value: snapshot.val().value,
-        timestamp: snapshot.val().timestamp
-      };
+    ref.on('value', snapshot => {
+      if (snapshot.val()) {
+        this.setState({ messages: Object.values(snapshot.val()) });
+      }
 
-      this.setState({ messages: [message].concat(this.state.messages) });
-    })
+      ref.off('value');
+      ref.on('child_added', new_record => {
+        this.setState({
+          messages: [new_record.val()].concat(this.state.messages)
+        });
+      });
+    });
+  }
+
+  componentWillMount() {
+    this.reloadData();
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.graphType !== this.state.graphType) {
+      this.setState({messages: []});
+      this.reloadData(prevState.graphType);
+    }
   }
 
   addMessage(e){
@@ -41,6 +56,11 @@ class App extends Component {
     this.inputEl.value = ''; // <- clear the input
   }
 
+  handleOptionChange(changeEvent) {
+    this.setState({
+      graphType: changeEvent.target.value})
+  }
+
   render() {
     return (
     <div>
@@ -50,16 +70,44 @@ class App extends Component {
         <ul>
           { /* Render the list of messages */
         //    this.state.messages.map(
-        //      (msg, i) => <li key={i}>Time: {msg.timestamp} Value: {msg.value}</li>
+        //(msg, i) => <li key={i}>Time: {msg.timestamp} Value: {msg.value}</li>
         //    )
           }
         </ul>
+      </form>
+      <form>
+        <div className="radio">
+          <label>
+            <input type="radio" value="temp"
+                  checked={this.state.graphType === 'temp'}
+                  onChange={this.handleOptionChange.bind(this)} />
+            Temperature
+          </label>
+        </div>
+        <div className="radio">
+         <label>
+            <input type="radio" value="co2"
+                  checked={this.state.graphType === 'co2'}
+                  onChange={this.handleOptionChange.bind(this)} />
+            CO2
+          </label>
+        </div>
+        <div className="radio">
+          <label>
+            <input type="radio" value="humidity"
+                  checked={this.state.graphType === 'humidity'}
+                  onChange={this.handleOptionChange.bind(this)} />
+            Humidity
+          </label>
+        </div>
       </form>
       <Plot data={[
         {
           type: 'scatter',
           mode: 'lines+points',
-          x: this.state.messages.map( msg => msg.timestamp),
+          x: this.state.messages.map( msg => {
+            var date = new Date(msg.timestamp);
+            return (date)}),
           y: this.state.messages.map( msg => +msg.value),
           marker: {color: 'red'}
         }
@@ -68,7 +116,9 @@ class App extends Component {
       layout={{
         width: 800,
         height: 600,
-        title: 'A Fancy Plot'
+        yaxis: {title: "Value"},
+        xaxis: {tickformat: "%b %d, %H:%M", tickangle: 45},
+        title: 'Temperature'
       }}
     />
     </div>
