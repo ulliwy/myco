@@ -1,49 +1,122 @@
 import React, { Component } from 'react';
 import fire from './fire';
 
-//import Plot from 'react-plotly.js'
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css';
 
-import Plotly from 'plotly.js/lib/core';
-import plotComponentFactory from 'react-plotly.js/factory';
-const Plot = plotComponentFactory(Plotly);
+import { Line } from 'react-chartjs-2';
+
+const sliderStyle = {width: 400, margin: 50};
+const marks = {
+  0: 'start',
+  20: 'month',
+  50: 'day',
+  100: 'now',
+  };
+const hour = 3600000;
+//const day = 86400000;
+//const week = day * 7;
+//const month = day * 31;
+
+const tempGraph = 'temp';
+const co2Graph = 'co2';
+const humidGraph = 'humidity';
+
+
+class Graph extends Component {
+  constructor(props) {
+    super(props);
+    }
+  render() {
+    //debugger;
+    return (
+      <Line data={{
+        labels: this.props.table.map( r => {return new Date(r.timestamp);} ),
+        datasets: [{
+          label: this.props.name,
+          fill: false,
+          lineTension: 0,
+          data: this.props.table.map( r => {return r.value;} ),
+          backgroundColor: 'rgba(255, 99, 132, 0.2)',
+          borderColor: 'rgba(255,99,132,1)',
+        }]
+      }}
+      options={{
+        scales: {
+         xAxes: [{
+           type: "time",
+           time: {
+             displayFormats: {
+               //second: 'MMM D h:mm'
+             }
+             //parser: 'MM/DD/YYYY HH:mm',
+             // round: 'day'
+          },
+          scaleLabel: {
+            display: true,
+               labelString: 'Date'
+             },
+             ticks: {
+               source: 'auto',
+             },
+         }],
+          yAxes: [{
+           scaleLabel: {
+             display: true,
+             labelString: 'value'
+           }
+          }]
+        }
+      }} width={600} height={250}/>
+    )
+  }
+}
 
 class App extends Component {
   constructor(props) {
     super(props);
-    this.state = { messages: [], graphType: "temp" };
+    this.state =
+    {
+      tempValues: [],
+      co2Values: [],
+      humidValues: []
+    };
   }
 
-  reloadData(prevStore) {
-    if (prevStore) {
-      fire.database().ref(prevStore).off();
-    }
-
-    let ref = fire.database().ref(this.state.graphType)
-      .orderByChild('timestamp').limitToLast(5000);
-
-    ref.on('value', snapshot => {
-      if (snapshot.val()) {
-        this.setState({ messages: Object.values(snapshot.val()) });
+  reloadData(tableName, values) {
+    //if (prevStore) {
+    //  fire.database().ref(prevStore).off();
+    //}
+    let tempRef = fire.database().ref(tableName)
+      .orderByKey().limitToLast(5000);
+    tempRef.on('value', records => {
+      var newState = {};
+     // debugger;
+      if (records.val()) {
+        newState[values] = Object.values(records.val());
+        this.setState(newState);
       }
-
-      ref.off('value');
-      ref.on('child_added', new_record => {
-        this.setState({
-          messages: [new_record.val()].concat(this.state.messages)
-        });
-      });
+      //tempRef.off('value');
+      //tempRef.on('child_added', new_record => {
+      //  var updatedState = {};
+      //  debugger;
+      //  updatedState[values] = this.state[values].concat([new_record.val()]);
+      // this.setState(updatedState);
+      //})
     });
   }
 
+  reloadAllData() {
+    this.reloadData(tempGraph, 'tempValues');
+    this.reloadData(co2Graph, 'co2Values');
+    this.reloadData(humidGraph, 'humidValues');
+  }
+
   componentWillMount() {
-    this.reloadData();
+    this.reloadAllData();
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevState.graphType !== this.state.graphType) {
-      this.setState({messages: []});
-      this.reloadData(prevState.graphType);
-    }
   }
 
   addMessage(e){
@@ -56,10 +129,16 @@ class App extends Component {
     this.inputEl.value = ''; // <- clear the input
   }
 
-  handleOptionChange(changeEvent) {
-    this.setState({
-      graphType: changeEvent.target.value})
-  }
+
+  calcRange(value) {
+    //var left;
+    //var right;
+    let now = new Date().getTime();
+    if (value[0] === 50) {
+      this.setState({
+        start: now - hour})
+      }
+    }
 
   render() {
     return (
@@ -75,52 +154,14 @@ class App extends Component {
           }
         </ul>
       </form>
-      <form>
-        <div className="radio">
-          <label>
-            <input type="radio" value="temp"
-                  checked={this.state.graphType === 'temp'}
-                  onChange={this.handleOptionChange.bind(this)} />
-            Temperature
-          </label>
-        </div>
-        <div className="radio">
-         <label>
-            <input type="radio" value="co2"
-                  checked={this.state.graphType === 'co2'}
-                  onChange={this.handleOptionChange.bind(this)} />
-            CO2
-          </label>
-        </div>
-        <div className="radio">
-          <label>
-            <input type="radio" value="humidity"
-                  checked={this.state.graphType === 'humidity'}
-                  onChange={this.handleOptionChange.bind(this)} />
-            Humidity
-          </label>
-        </div>
-      </form>
-      <Plot data={[
-        {
-          type: 'scatter',
-          mode: 'lines+points',
-          x: this.state.messages.map( msg => {
-            var date = new Date(msg.timestamp);
-            return (date)}),
-          y: this.state.messages.map( msg => +msg.value),
-          marker: {color: 'red'}
-        }
-      ]}
-
-      layout={{
-        width: 800,
-        height: 600,
-        yaxis: {title: "Value"},
-        xaxis: {tickformat: "%b %d, %H:%M", tickangle: 45},
-        title: 'Temperature'
-      }}
-    />
+      <Graph name="Temperature" table={this.state.tempValues} />
+      <Graph name="CO2" table={this.state.co2Values} />
+      <Graph name="Humidity" table={this.state.humidValues} />
+      <div style={sliderStyle}>
+        <p>Time range</p>
+        <Slider.Range min={0} marks={marks} onChange={this.calcRange.bind(this)}
+                              defaultValue={[10, 2000]} />
+      </div>
     </div>
       );
   }
