@@ -22,6 +22,22 @@
   font-size: large;
 }
 
+.plot {
+  width: 50%;
+  display: inline-block;
+}
+
+.gallery {
+  display: inline-block;
+}
+
+.slider {
+  margin: auto;
+}
+
+.container {
+}
+
 @keyframes App-logo-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

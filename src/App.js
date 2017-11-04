@@ -1,6 +1,9 @@
 import React, { Component } from 'react';
 import fire from './fire';
 
+import './App.css';
+import './navbar.css';
+
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 
@@ -9,7 +12,7 @@ import { Line } from 'react-chartjs-2';
 import ImageGallery from 'react-image-gallery';
 import "react-image-gallery/styles/css/image-gallery.css";
 
-const sliderStyle = {width: 400, margin: 50};
+const sliderStyle = {width: 400};
 const marks = {
   0: '3 months',
   20: 'month',
@@ -52,7 +55,8 @@ class Graph extends Component {
            type: "time",
            time: {
              displayFormats: {
-               //second: 'MMM D h:mm'
+               second: 'MMM D h:mm',
+               hour: 'MMM D h:mm'
              }
              //parser: 'MM/DD/YYYY HH:mm',
              // round: 'day'
@@ -72,7 +76,7 @@ class Graph extends Component {
            }
           }]
         }
-      }} width={600} height={250}/>
+      }} width={400} height={250}/>
     )
   }
 }
@@ -207,32 +211,41 @@ class App extends Component {
   render() {
     return (
     <div>
-      <form onSubmit={this.addMessage.bind(this)}>
-        <input type="text" ref={ el => this.inputEl = el }/>
-        <input type="submit"/>
-        <ul>
-          { /* Render the list of messages */
-        //    this.state.messages.map(
-        //(msg, i) => <li key={i}>Time: {msg.timestamp} Value: {msg.value}</li>
-        //    )
-          }
-        </ul>
-      </form>
-      <Graph name="Temperature" table={this.state.tempValues} />
-      <Graph name="CO2" table={this.state.co2Values} />
-      <Graph name="Humidity" table={this.state.humidValues} />
-      <div style={sliderStyle}>
-        <p>Time range</p>
-        <Slider.Range dots min={0} marks={marks} step={20}
+      <div class="topnav" id="myTopnav">
+        <a href="#logo">Mycotronics</a>
+      </div>
+      <div>
+        <div className="slider" style={sliderStyle}>
+          <p>Time range</p>
+          <Slider.Range dots min={0} marks={marks} step={20}
                               onChange={this.calcRange.bind(this)}
                               defaultValue={[0, 100]} />
+        </div>
+        <div>
+          <div className="container">
+            <div className="plot">
+              <Graph name="Temperature" table={this.state.tempValues} />
+            </div>
+            <div className="plot">
+              <Graph name="CO2" table={this.state.co2Values} />
+            </div>
+          </div>
+        <div className="container">
+        <div className="plot">
+          <Graph name="Humidity" table={this.state.humidValues} />
+          </div>
+            <div className="plot">
+              <ImageGallery items={this.state.cameraValues}
+                showThumbnails={true}
+                thumbnailPosition='left'
+                defaultImage = {"http://www.bsmc.net.au/wp-content/uploads/No-image-available.jpg"}
+              />
+            </div>
+          </div>
+        </div>
       </div>
-      <ImageGallery items={this.state.cameraValues}
-        showThumbnails={true}
-        defaultImage = {"http://www.bsmc.net.au/wp-content/uploads/No-image-available.jpg"}
-         />
     </div>
-      );
+    );
   }
 }
 
