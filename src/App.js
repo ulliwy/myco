@@ -6,27 +6,32 @@ import 'rc-slider/assets/index.css';
 
 import { Line } from 'react-chartjs-2';
 
+import ImageGallery from 'react-image-gallery';
+import "react-image-gallery/styles/css/image-gallery.css";
+
 const sliderStyle = {width: 400, margin: 50};
 const marks = {
-  0: 'start',
+  0: '3 months',
   20: 'month',
-  50: 'day',
+  40: 'week',
+  60: 'day',
+  80: 'hour',
   100: 'now',
   };
 const hour = 3600000;
-//const day = 86400000;
+const day = 86400000;
 //const week = day * 7;
 //const month = day * 31;
 
 const tempGraph = 'temp';
 const co2Graph = 'co2';
 const humidGraph = 'humidity';
-
+const camera = 'camera';
 
 class Graph extends Component {
-  constructor(props) {
-    super(props);
-    }
+  //constructor(props) {
+  //  super(props);
+  //  }
   render() {
     //debugger;
     return (
@@ -79,37 +84,65 @@ class App extends Component {
     {
       tempValues: [],
       co2Values: [],
-      humidValues: []
+      humidValues: [],
+      cameraValues: []
     };
   }
 
-  reloadData(tableName, values) {
-    //if (prevStore) {
-    //  fire.database().ref(prevStore).off();
-    //}
-    let tempRef = fire.database().ref(tableName)
-      .orderByKey().limitToLast(5000);
-    tempRef.on('value', records => {
-      var newState = {};
-     // debugger;
-      if (records.val()) {
-        newState[values] = Object.values(records.val());
+  reloadData(tableName, values, start, end) {
+    if (start || end) {
+      let tempRef = fire.database().ref(tableName).orderByChild('timestamp')
+        .startAt(new Date().getTime() - start)
+        .endAt(new Date().getTime() - end);
+      debugger;
+      tempRef.on('value', records => {
+        var newState = {};
+        if (records.val()) {
+          newState[values] = Object.values(records.val());
+          //this.setState(newState);
+        } else {
+          if (values === 'cameraValues') {
+            newState[values] = [{
+              original: "https://storage.googleapis.com/stanford-boxes.appspot.com/pics/no-image-available%20(1).jpg",
+              thumbnail: "https://storage.googleapis.com/stanford-boxes.appspot.com/pics/no-image-available%20(1).jpg"}]
+          } else {
+            newState[values] = [];
+          }
+          //this.setState(newState);
+        }
         this.setState(newState);
-      }
-      //tempRef.off('value');
-      //tempRef.on('child_added', new_record => {
-      //  var updatedState = {};
-      //  debugger;
-      //  updatedState[values] = this.state[values].concat([new_record.val()]);
-      // this.setState(updatedState);
-      //})
-    });
+      });
+    } else {
+      let tempRef = fire.database().ref(tableName)
+        .orderByKey().limitToLast(5000);
+      tempRef.on('value', records => {
+        var newState = {};
+        if (records.val()) {
+          newState[values] = Object.values(records.val());
+          //this.setState(newState);
+        } else {
+          newState[values] = [];
+          //this.setState(newState);
+        }
+        this.setState(newState);
+      });
+    }
+    //tempRef.on('value', records => {
+    //  var newState = {};
+     // debugger;
+    //  if (records.val()) {
+    //    newState[values] = Object.values(records.val());
+    //    this.setState(newState);
+    //  }
+    //});
   }
 
-  reloadAllData() {
-    this.reloadData(tempGraph, 'tempValues');
-    this.reloadData(co2Graph, 'co2Values');
-    this.reloadData(humidGraph, 'humidValues');
+  reloadAllData(start, end) {
+    //debugger;
+    this.reloadData(tempGraph, 'tempValues', start, end);
+    this.reloadData(co2Graph, 'co2Values', start, end);
+    this.reloadData(humidGraph, 'humidValues', start, end);
+    this.reloadData(camera, 'cameraValues', start, end);
   }
 
   componentWillMount() {
@@ -126,19 +159,50 @@ class App extends Component {
       value: this.inputEl.value,
       timestamp: new Date().getTime()
     });
-    this.inputEl.value = ''; // <- clear the input
+    fire.database().ref('co2').push({
+      value: this.inputEl.value,
+      timestamp: new Date().getTime()
+    });
+    fire.database().ref('humidity').push({
+      value: this.inputEl.value,
+      timestamp: new Date().getTime()
+    });
+  this.inputEl.value = ''; // <- clear the input
   }
 
 
   calcRange(value) {
-    //var left;
-    //var right;
-    let now = new Date().getTime();
-    if (value[0] === 50) {
-      this.setState({
-        start: now - hour})
-      }
+    var left;
+    var right;
+    //debugger;
+    if (value[0] === 0) {
+      left = day * 31 * 3;
+    } else if (value[0] === 20){
+      left = day * 31;
+    } else if (value[0] === 40){
+      left = day * 7;
+    } else if (value[0] === 60) {
+      left = day;
+    } else if (value[0] === 80){
+      left = hour;
     }
+    if (value[1] === 0) {
+      right = day * 31 * 3;
+    } else if (value[1] === 20){
+      right = day * 31;
+    } else if (value[1] === 40){
+      right = day * 7;
+    } else if (value[1] === 60) {
+      right = day;
+    } else if (value[1] === 80){
+      right = hour;
+    } else if (value[1] === 100) {
+      right = 0;
+    }
+    if (left || right) {
+       this.reloadAllData(left, right);
+    }
+  }
 
   render() {
     return (
@@ -159,9 +223,14 @@ class App extends Component {
       <Graph name="Humidity" table={this.state.humidValues} />
       <div style={sliderStyle}>
         <p>Time range</p>
-        <Slider.Range min={0} marks={marks} onChange={this.calcRange.bind(this)}
-                              defaultValue={[10, 2000]} />
+        <Slider.Range dots min={0} marks={marks} step={20}
+                              onChange={this.calcRange.bind(this)}
+                              defaultValue={[0, 100]} />
       </div>
+      <ImageGallery items={this.state.cameraValues}
+        showThumbnails={true}
+        defaultImage = {"http://www.bsmc.net.au/wp-content/uploads/No-image-available.jpg"}
+         />
     </div>
       );
   }
