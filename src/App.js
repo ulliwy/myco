@@ -12,7 +12,8 @@ import { Line } from 'react-chartjs-2';
 import ImageGallery from 'react-image-gallery';
 import "react-image-gallery/styles/css/image-gallery.css";
 
-const sliderStyle = {width: 400};
+import fileDownload from 'js-file-download';
+
 const marks = {
   0: '3 months',
   20: 'month',
@@ -23,20 +24,15 @@ const marks = {
   };
 const hour = 3600000;
 const day = 86400000;
-//const week = day * 7;
-//const month = day * 31;
-
-const tempGraph = 'temp';
-const co2Graph = 'co2';
-const humidGraph = 'humidity';
-const camera = 'camera';
-
+const tempGraph = 'data/rpi1/Temp';
+const co2Graph = 'data/rpi1/CO2';
+const humidGraph = 'data/rpi1/Humi';
+const camera = 'data/rpi1/Camera';
+const buttonStyle = {
+  margin: '20px 10px 10px 0'
+};
 class Graph extends Component {
-  //constructor(props) {
-  //  super(props);
-  //  }
   render() {
-    //debugger;
     return (
       <Line data={{
         labels: this.props.table.map( r => {return new Date(r.timestamp);} ),
@@ -45,21 +41,29 @@ class Graph extends Component {
           fill: false,
           lineTension: 0,
           data: this.props.table.map( r => {return r.value;} ),
-          backgroundColor: 'rgba(255, 99, 132, 0.2)',
-          borderColor: 'rgba(255,99,132,1)',
+          backgroundColor: 'rgba(202, 215, 220, 2)',
+          borderColor: 'rgba(81, 123, 139, 1)',
         }]
       }}
       options={{
+        title: {
+          display: true,
+          text: this.props.name,
+          fontSize: 14,
+        },
+        legend: {
+          display: false,
+        },
         scales: {
          xAxes: [{
            type: "time",
            time: {
              displayFormats: {
-               second: 'MMM D h:mm',
-               hour: 'MMM D h:mm'
-             }
-             //parser: 'MM/DD/YYYY HH:mm',
-             // round: 'day'
+               second: 'MMM D,HH:mm',
+               hour: 'MMM D, HH:mm',
+               day: 'MM D, HH:mm',
+               month: "MM D"
+              },
           },
           scaleLabel: {
             display: true,
@@ -72,7 +76,7 @@ class Graph extends Component {
           yAxes: [{
            scaleLabel: {
              display: true,
-             labelString: 'value'
+             labelString: 'Value'
            }
           }]
         }
@@ -98,12 +102,10 @@ class App extends Component {
       let tempRef = fire.database().ref(tableName).orderByChild('timestamp')
         .startAt(new Date().getTime() - start)
         .endAt(new Date().getTime() - end);
-      debugger;
       tempRef.on('value', records => {
         var newState = {};
         if (records.val()) {
           newState[values] = Object.values(records.val());
-          //this.setState(newState);
         } else {
           if (values === 'cameraValues') {
             newState[values] = [{
@@ -112,37 +114,28 @@ class App extends Component {
           } else {
             newState[values] = [];
           }
-          //this.setState(newState);
         }
         this.setState(newState);
       });
     } else {
       let tempRef = fire.database().ref(tableName)
-        .orderByKey().limitToLast(5000);
+        .orderByChild('timestamp')
+        .startAt(new Date().getTime() - day)
+        .endAt(new Date().getTime());
       tempRef.on('value', records => {
         var newState = {};
+        debugger;
         if (records.val()) {
-          newState[values] = Object.values(records.val());
-          //this.setState(newState);
+        newState[values] = Object.values(records.val());
         } else {
           newState[values] = [];
-          //this.setState(newState);
         }
         this.setState(newState);
       });
     }
-    //tempRef.on('value', records => {
-    //  var newState = {};
-     // debugger;
-    //  if (records.val()) {
-    //    newState[values] = Object.values(records.val());
-    //    this.setState(newState);
-    //  }
-    //});
   }
 
   reloadAllData(start, end) {
-    //debugger;
     this.reloadData(tempGraph, 'tempValues', start, end);
     this.reloadData(co2Graph, 'co2Values', start, end);
     this.reloadData(humidGraph, 'humidValues', start, end);
@@ -174,11 +167,18 @@ class App extends Component {
   this.inputEl.value = ''; // <- clear the input
   }
 
+  handleClick() {
+   var data = [
+     {temp: this.state.tempValues},
+     {co2: this.state.co2Values},
+     {humidity: this.state.humidValues}
+   ];
+   fileDownload(JSON.stringify(data), 'data.json');
+  }
 
   calcRange(value) {
     var left;
     var right;
-    //debugger;
     if (value[0] === 0) {
       left = day * 31 * 3;
     } else if (value[0] === 20){
@@ -211,15 +211,20 @@ class App extends Component {
   render() {
     return (
     <div>
-      <div class="topnav" id="myTopnav">
-        <a href="#logo">Mycotronics</a>
+      <div className="topnav" id="myTopnav">
+        <div className="logo">
+	  <a href="">
+            <img src="http://storage.googleapis.com/stanford-boxes.appspot.com/pics/logo.png" alt="Mycotronics" />
+          </a>
+        </div>
       </div>
       <div>
-        <div className="slider" style={sliderStyle}>
-          <p>Time range</p>
+        <div>
+        <div className="slider">
           <Slider.Range dots min={0} marks={marks} step={20}
                               onChange={this.calcRange.bind(this)}
-                              defaultValue={[0, 100]} />
+                              defaultValue={[60, 100]} />
+        </div>
         </div>
         <div>
           <div className="container">
@@ -235,14 +240,30 @@ class App extends Component {
           <Graph name="Humidity" table={this.state.humidValues} />
           </div>
             <div className="plot">
-              <ImageGallery items={this.state.cameraValues}
+              <ImageGallery items={this.state.cameraValues.map(el => {
+                return {
+                  original: el.original,
+                  thumbnail: el.original
+                }
+              })}
                 showThumbnails={true}
-                thumbnailPosition='left'
-                defaultImage = {"http://www.bsmc.net.au/wp-content/uploads/No-image-available.jpg"}
+                thumbnailPosition='right'
+                disableSwipe={true}
+                slideDuration={1}
+                slideInterval={500}
+                infinite={false}
+                defaultImage={"http://www.bsmc.net.au/wp-content/uploads/No-image-available.jpg"}
               />
             </div>
           </div>
         </div>
+      </div>
+      <div>
+        <button className="btn btn-default"
+          style={buttonStyle}
+          onClick={this.handleClick.bind(this)}>
+          Get data
+        </button>
       </div>
     </div>
     );

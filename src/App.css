@@ -23,8 +23,9 @@
 }
 
 .plot {
-  width: 50%;
+  width: 48%;
   display: inline-block;
+  margin: 10px;
 }
 
 .gallery {
@@ -33,6 +34,9 @@
 
 .slider {
   margin: auto;
+  width: 400px;
+  padding-bottom: 20px;
+  padding-top: 20px;
 }
 
 .container {
