@@ -1,7 +1,8 @@
 /* Add a black background color to the top navigation */
 .topnav {
-    background-color: #F2F2F2;
+    background-color: #8FBC8F;
     overflow: hidden;
+    height: 55px;
 }
 
 /* Style the links inside the navigation bar */
@@ -10,7 +11,7 @@
     display: block;
     color: #f2f2f2;
     text-align: center;
-    padding: 14px 16px;
+    padding: 7px 16px;
     text-decoration: none;
     font-size: 30px;
 }
@@ -25,9 +26,15 @@
 .topnav a.active {
     background-color: #4CAF50;
     color: white;
-
-.logo {
-  padding-top: 10px;
 }
 
+.topnav button {
+  position: absolute;
+  right: 5%;
+  top: 5px;
 }
+
+.topnav img {
+  height: 40px;
+}
+

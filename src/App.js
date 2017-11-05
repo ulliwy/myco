@@ -28,9 +28,6 @@ const tempGraph = 'data/rpi1/Temp';
 const co2Graph = 'data/rpi1/CO2';
 const humidGraph = 'data/rpi1/Humi';
 const camera = 'data/rpi1/Camera';
-const buttonStyle = {
-  margin: '20px 10px 10px 0'
-};
 class Graph extends Component {
   render() {
     return (
@@ -124,7 +121,6 @@ class App extends Component {
         .endAt(new Date().getTime());
       tempRef.on('value', records => {
         var newState = {};
-        debugger;
         if (records.val()) {
         newState[values] = Object.values(records.val());
         } else {
@@ -212,10 +208,15 @@ class App extends Component {
     return (
     <div>
       <div className="topnav" id="myTopnav">
-        <div className="logo">
+	<div className="logo">
 	  <a href="">
             <img src="http://storage.googleapis.com/stanford-boxes.appspot.com/pics/logo.png" alt="Mycotronics" />
           </a>
+            <button className="btn"
+              onClick={this.handleClick.bind(this)}>
+              <img src="https://cdn0.iconfinder.com/data/icons/simple-seo-and-internet-icons/512/download_cloud_information-512.png"
+                alt="Get data"/>
+            </button>
         </div>
       </div>
       <div>
@@ -257,13 +258,6 @@ class App extends Component {
             </div>
           </div>
         </div>
-      </div>
-      <div>
-        <button className="btn btn-default"
-          style={buttonStyle}
-          onClick={this.handleClick.bind(this)}>
-          Get data
-        </button>
       </div>
     </div>
     );
