@@ -55,7 +55,12 @@ class App extends Component {
         tempRef.on('value', records => {
             var newState = {};
             if (records.val()) {
-                newState[values] = Object.values(records.val());
+                debugger;
+                newState[values] = Object.values(records.val()).filter(v => {
+                  if (v.value !== "") {
+                    return v;
+                  }
+                });
             } else {
                 if (values === 'cameraValues') {
                     newState[values] = [{
