@@ -46,20 +46,20 @@ class App extends Component {
         if (!start) {
             start = day;
         }
-        if (!end) {
-            end = 0;
-        }
-        let tempRef = fire.database().ref(tableName).orderByChild('timestamp')
+        let tempRef;
+        if (!end || end === 100) {
+            tempRef = fire.database().ref(tableName).orderByChild('timestamp')
+                .startAt(new Date().getTime() - start);
+        } else {
+            tempRef = fire.database().ref(tableName).orderByChild('timestamp')
                 .startAt(new Date().getTime() - start)
                 .endAt(new Date().getTime() - end);
+        }
         tempRef.on('value', records => {
             var newState = {};
             if (records.val()) {
-                debugger;
                 newState[values] = Object.values(records.val()).filter(v => {
-                  if (v.value !== "") {
-                    return v;
-                  }
+                  return (v.value !== "");
                 });
             } else {
                 if (values === 'cameraValues') {
@@ -91,7 +91,7 @@ class App extends Component {
 /*
     addMessage(e) {
         e.preventDefault();
-        fire.database().ref('temp').push({
+        fire.database().ref(tempGraph).push({
             value: this.inputEl.value,
             timestamp: new Date().getTime()
         });
