@@ -75,11 +75,60 @@ class App extends Component {
         });
     }
 
+    getLastPoint(start, end) {
+        var values = [];
+        if (!start) {
+            start = day;
+        }
+        debugger;
+        let dbRef;
+        if (!end || end === 100) {
+            dbRef = fire.database().ref(camera).orderByChild('timestamp')
+            .startAt(new Date().getTime() - start)
+            .limitToLast(1);
+        } else {
+            dbRef = fire.database().ref(camera).orderByChild('timestamp')
+            .startAt(new Date().getTime() - start)
+            .endAt(new Date().getTime() - end)
+            .limitToLast(1);
+        }
+        var records;
+        dbRef.on('value', records => {
+            var newState = {};
+            if (records.val()) {
+                newState['last'] = Object.values(records.val());
+            } else {newState['last'] = [];}
+            this.setState(newState);
+        });
+    }
+
+    reloadCameraData(t0, range) {
+        var values = 'cameraValues';
+        let tempRef = fire.database().ref(camera).orderByChild('timestamp')
+            .limitToLast(range);
+        tempRef.on('value', records => {
+            var newState = {};
+            if (records.val()) {
+                newState[values] = Object.values(records.val()).filter(v => {
+                  return (v.value !== "");
+                });
+            } else {
+                newState[values] = [{
+                    original: "https://storage.googleapis.com/stanford-boxes.appspot.com/pics/no-image-available%20(1).jpg",
+                    thumbnail: "https://storage.googleapis.com/stanford-boxes.appspot.com/pics/no-image-available%20(1).jpg"
+                }]
+            }
+            this.setState(newState);
+        });
+    }
+
     reloadAllData(start, end) {
         this.reloadData(tempGraph, 'tempValues', start, end);
         this.reloadData(co2Graph, 'co2Values', start, end);
         this.reloadData(humidGraph, 'humidValues', start, end);
-        this.reloadData(camera, 'cameraValues', start, end);
+        //this.reloadData(camera, 'cameraValues', start, end);
+        this.getLastPoint(start, end);
+        this.reloadCameraData(new Date().getTime(), 10);
     }
 
     componentWillMount() {
@@ -182,7 +231,7 @@ class App extends Component {
                     </div>
                     <div>
                         <div className = "container">
-                            <div className = "plot">
+                            <div id = "test" className = "plot">
                                 <Graph name = "Temperature" table = {this.state.tempValues}/>
                             </div>
                             <div className = "plot">

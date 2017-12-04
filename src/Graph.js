@@ -2,25 +2,34 @@ import React, {Component} from 'react';
 import {Line} from 'react-chartjs-2';
 
 class Graph extends Component {
+    onload() {
+        console.log(document.getElementById('test'));
+    }
+
     render() {
         return (<
-            Line data = {
-                {
-                    labels: this.props.table.map(r => {
-                        return new Date(r.timestamp);
-                    }),
-                    datasets: [{
-                        label: this.props.name,
-                        fill: false,
-                        lineTension: 0,
-                        data: this.props.table.map(r => {
-                            return r.value;
+            Line
+                onElementsClick = {(elems) => {
+                    debugger;
+                    this.onload();
+                }}
+                data = {
+                    {
+                        labels: this.props.table.map(r => {
+                            return new Date(r.timestamp);
                         }),
-                        backgroundColor: 'rgba(202, 215, 220, 2)',
-                        borderColor: 'rgba(81, 123, 139, 1)',
-                    }]
+                        datasets: [{
+                            label: this.props.name,
+                            fill: false,
+                            lineTension: 0,
+                            data: this.props.table.map(r => {
+                                return r.value;
+                            }),
+                            backgroundColor: 'rgba(202, 215, 220, 2)',
+                            borderColor: 'rgba(81, 123, 139, 1)',
+                        }]
+                    }
                 }
-            }
             options = {
                 {
                     title: {
